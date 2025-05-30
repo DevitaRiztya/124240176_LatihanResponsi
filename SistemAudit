@@ -1,0 +1,185 @@
+#include <iostream>
+#include <string>
+#include <fstream>
+using namespace std;
+
+// Struktur data pelaku
+struct Pelaku {
+    string nama;
+    string posisi;
+    double nominal;
+};
+
+// Node untuk BST(Binary Search Tree)
+struct Node {
+    Pelaku data;
+    Node* kiri;
+    Node* kanan;
+};
+
+Node* root = NULL;
+
+Node* buatNode(Pelaku p) {
+    Node* baru = new Node;
+    baru->data = p;
+    baru->kiri = baru->kanan = NULL;
+    return baru;
+}
+
+Node* tambah(Node* akar, Pelaku p) {
+    if (akar == NULL) return buatNode(p);
+    if (p.nama < akar->data.nama)
+        akar->kiri = tambah(akar->kiri, p);
+    else
+        akar->kanan = tambah(akar->kanan, p);
+    return akar;
+    }
+
+Node* cariMin(Node* node) {
+    while (node && node->kiri !=NULL)
+        node = node->kiri;
+    return node;
+}
+
+Node* hapus(Node* akar, string nama) {
+    if (akar == NULL) return NULL;
+    if (nama < akar->data.nama) {
+        akar->kiri = hapus(akar->kiri, nama);
+    } else if (nama > akar->data.nama) {
+        akar->kanan = hapus(akar->kanan, nama);
+    } else {
+        // Node ditemukan
+        if (akar->kiri == NULL) {
+            Node* temp = akar->kanan;
+            delete akar;
+            return temp;
+        } else if (akar->kanan == NULL) {
+            Node* temp = akar->kiri;
+            delete akar;
+            return temp;
+        }
+        Node* temp = cariMin(akar->kanan);
+        akar->data = temp->data;
+        akar->kanan = hapus(akar->kanan, temp->data.nama);
+    }
+    return akar;
+}
+
+void tampil(Node* akar) {
+    if (akar) {
+        tampil(akar->kiri);
+        cout << "Nama   : " << akar->data.nama << endl;
+        cout << "Posisi : " << akar->data.posisi << endl;
+        cout << "Nominal: " << akar->data.nominal << endl;
+        cout << "------------------------" << endl;
+        tampil(akar->kanan);
+    }
+}
+
+void simpanKeFile(Node* akar, ofstream& file) {
+    if (akar) {
+        simpanKeFile(akar->kiri, file);
+        file << akar->data.nama << ";" << akar->data.posisi << ";" << akar->data.nominal << endl;
+        simpanKeFile(akar->kanan, file);
+    }
+}
+
+void simpanData() {
+    ofstream file("PelakuData.txt"); // Samakan nama file
+    if (!file) {
+        cerr << "Error membuka file untuk menyimpan data." << endl;
+        return;
+    }
+    simpanKeFile(root, file);
+    file.close();
+    cout << "Data berhasil disimpan ke file." << endl;
+}
+
+
+void muatData() {
+    ifstream file("PelakuData.txt");
+    if (!file)
+        return;
+    string baris;
+    while (getline(file, baris)) {
+        Pelaku p;
+        size_t p1 = baris.find(';');
+        size_t p2 = baris.rfind(';');
+        if (p1 == string::npos || p2 == string::npos || p1 == p2)
+            continue;
+
+        p.nama      = baris.substr(0, p1);
+        p.posisi    = baris.substr(p1 + 1, p2 - p1 - 1);
+        p.nominal   = stod(baris.substr(p2 + 1));
+
+        root = tambah(root, p);
+    }
+    file.close();
+}
+
+void tambahData() {
+    Pelaku p;
+    cin.ignore();
+    cout << "Nama pelaku    : "; getline(cin, p.nama);
+    cout << "Posisi/jabatan :"; getline(cin, p.posisi);
+    cout << "Nominal dugaan : Rp"; cin >> p.nominal;
+    root = tambah(root, p);
+    cout << "Data berhasil ditambahkan.\n";
+}
+
+void hapusData() {
+    string nama;
+    cin.ignore();
+    cout << "Masukkan nama yang ingin dihapus: ";
+    getline(cin, nama);
+    root = hapus(root, nama);
+    cout << "Jika nama ditemukan, sata telah dihapus.\n";
+}
+
+void menu() {
+    int pilih;
+    do {
+        system("cls");
+        cout << "=====AUDIT MBG - DATA PENGELAPAN =====" << endl;
+        cout << "1. Tambah Data Pelaku" << endl;
+        cout << "2. Tampilkan Semua Data" << endl;
+        cout << "3. Hapus Data Pelaku" << endl;
+        cout << "4. Simpan ke File" << endl;
+        cout << "0. Keluar" << endl;
+        cout << "Pilihan : "; cin >> pilih;
+        cout << endl;
+
+        switch(pilih) {
+            case 1:
+                tambahData();
+                break;
+            case 2:
+                tampil(root);
+                system("pause");
+                break;
+            case 3:
+                hapusData();
+                break;
+            case 4:
+                simpanData();
+                break;
+            case 0:
+                cout << "Keluar dari program." << endl;
+                break;
+            default:
+                cout << "Pilihan tidak valid." << endl;
+        }
+        system("pause");
+    } while (pilih !=0);
+}
+
+int main() {
+    muatData();
+    menu();
+    while (root !=NULL)
+    {
+        root = hapus(root, root->data.nama);
+    }
+    cout << "Semua data telah dihapus." << endl;
+    return 0;
+}
